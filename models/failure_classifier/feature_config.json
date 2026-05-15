@@ -1,0 +1,24 @@
+{
+  "features": [
+    "air_temp_k",
+    "process_temp_k",
+    "rotational_speed_rpm",
+    "torque_nm",
+    "tool_wear_min",
+    "temp_diff_k",
+    "power_w",
+    "wear_torque",
+    "type_ordinal"
+  ],
+  "type_encoding": {
+    "L": 0,
+    "M": 1,
+    "H": 2
+  },
+  "engineered": {
+    "temp_diff_k": "process_temp_k - air_temp_k",
+    "power_w": "torque_nm * rotational_speed_rpm * 2*pi/60",
+    "wear_torque": "tool_wear_min * torque_nm",
+    "type_ordinal": "type mapped through type_encoding"
+  }
+}

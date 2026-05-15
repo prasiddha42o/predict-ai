@@ -1,0 +1,18 @@
+{
+  "model": "Logistic Regression (raw)",
+  "split": "test",
+  "recorded_at": "2026-08-16T11:42:59+00:00",
+  "notes": "5 raw sensors + type, default 0.5 threshold",
+  "threshold": 0.5,
+  "accuracy": 0.9675,
+  "precision": 0.6363636363636364,
+  "recall": 0.10294117647058823,
+  "f1": 0.17721518987341772,
+  "roc_auc": 0.9028209109730848,
+  "pr_auc": 0.4146552718833577,
+  "tn": 1928,
+  "fp": 4,
+  "fn": 61,
+  "tp": 7,
+  "cost": 30540.0
+}

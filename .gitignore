@@ -1,0 +1,34 @@
+# OS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter
+.jupyter/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+
+# Node / frontend
+node_modules/
+.next/
+out/
+dist/
+build/
+
+# MLflow
+mlruns/
+
+# Docker
+.docker/

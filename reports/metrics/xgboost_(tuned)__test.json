@@ -1,0 +1,28 @@
+{
+  "model": "XGBoost (tuned)",
+  "split": "test",
+  "recorded_at": "2026-08-16T11:46:16+00:00",
+  "notes": "Optuna 40 trials, 5-fold CV on AP; threshold 0.0401 from val",
+  "threshold": 0.0401,
+  "accuracy": 0.937,
+  "precision": 0.3423913043478261,
+  "recall": 0.9264705882352942,
+  "f1": 0.5,
+  "roc_auc": 0.9728869808793082,
+  "pr_auc": 0.8983152353994546,
+  "tn": 1811,
+  "fp": 121,
+  "fn": 5,
+  "tp": 63,
+  "cost": 3710.0,
+  "params": {
+    "n_estimators": 200,
+    "max_depth": 5,
+    "learning_rate": 0.05299689932259188,
+    "subsample": 0.9995013623348333,
+    "colsample_bytree": 0.8977082730627735,
+    "min_child_weight": 2,
+    "gamma": 3.499240971797853,
+    "reg_lambda": 0.004157499250882497
+  }
+}
