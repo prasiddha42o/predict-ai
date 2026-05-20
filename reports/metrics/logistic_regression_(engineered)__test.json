@@ -1,7 +1,7 @@
 {
   "model": "Logistic Regression (engineered)",
   "split": "test",
-  "recorded_at": "2026-08-16T11:42:59+00:00",
+  "recorded_at": "2026-08-17T13:06:44+00:00",
   "notes": "+ physics features, cost-optimal threshold 0.0172 chosen on val",
   "threshold": 0.0172,
   "accuracy": 0.739,
