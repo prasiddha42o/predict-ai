@@ -1,6 +1,6 @@
 {
   "model_type": "XGBClassifier",
-  "xgboost_version": "3.4.1",
+  "xgboost_version": "2.1.4",
   "task": "binary machine failure classification",
   "dataset": "AI4I 2020",
   "trained_on": {
@@ -9,36 +9,36 @@
     "positives": 203
   },
   "hyperparameters": {
-    "n_estimators": 200,
-    "max_depth": 5,
-    "learning_rate": 0.05299689932259188,
-    "subsample": 0.9995013623348333,
-    "colsample_bytree": 0.8977082730627735,
-    "min_child_weight": 2,
-    "gamma": 3.499240971797853,
-    "reg_lambda": 0.004157499250882497
+    "n_estimators": 250,
+    "max_depth": 3,
+    "learning_rate": 0.012803342862728825,
+    "subsample": 0.8555261009136343,
+    "colsample_bytree": 0.8077468614823341,
+    "min_child_weight": 1,
+    "gamma": 2.223691187406534,
+    "reg_lambda": 0.06281432979929336
   },
   "tuning": {
     "framework": "optuna",
     "trials": 40,
     "objective": "5-fold CV average precision",
-    "best_cv_score": 0.8765
+    "best_cv_score": 0.8809
   },
-  "decision_threshold": 0.0401,
+  "decision_threshold": 0.0543,
   "threshold_selection": "expected-cost minimisation on validation split",
   "test_metrics": {
-    "threshold": 0.0401,
-    "accuracy": 0.937,
-    "precision": 0.3424,
-    "recall": 0.9265,
-    "f1": 0.5,
-    "roc_auc": 0.9729,
-    "pr_auc": 0.8983,
-    "tn": 1811,
-    "fp": 121,
-    "fn": 5,
-    "tp": 63,
-    "cost": 3710.0
+    "threshold": 0.0543,
+    "accuracy": 0.9405,
+    "precision": 0.3575,
+    "recall": 0.9412,
+    "f1": 0.5182,
+    "roc_auc": 0.9714,
+    "pr_auc": 0.898,
+    "tn": 1817,
+    "fp": 115,
+    "fn": 4,
+    "tp": 64,
+    "cost": 3150.0
   },
   "known_limits": {
     "deterministic_recall_ceiling": 0.847,
