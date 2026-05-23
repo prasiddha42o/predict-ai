@@ -1,0 +1,12 @@
+{
+  "model": "Ridge RUL baseline (C-MAPSS FD001)",
+  "split": "test",
+  "recorded_at": "2026-08-21T04:30:01+00:00",
+  "notes": "regression task \u2014 linear model on flattened 30-cycle window",
+  "rmse": 14.854580463853567,
+  "mae": 12.080644607543945,
+  "nasa_score": 367.23869739052185,
+  "pr_auc": NaN,
+  "recall": NaN,
+  "precision": NaN
+}

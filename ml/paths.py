@@ -23,5 +23,7 @@ RAW_CSV = DATA_RAW / "ai4i2020.csv"
 CLEAN_PARQUET = DATA_PROCESSED / "ai4i_clean.parquet"
 SPLIT_JSON = DATA_PROCESSED / "split_indices.json"
 
-for _p in (DATA_RAW, DATA_PROCESSED, MODELS, FIGURES, METRICS):
+CMAPSS_RAW = DATA_RAW / "cmapss"
+
+for _p in (DATA_RAW, DATA_PROCESSED, MODELS, FIGURES, METRICS, CMAPSS_RAW):
     _p.mkdir(parents=True, exist_ok=True)

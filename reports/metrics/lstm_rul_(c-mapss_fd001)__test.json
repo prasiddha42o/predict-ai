@@ -1,0 +1,12 @@
+{
+  "model": "LSTM RUL (C-MAPSS FD001)",
+  "split": "test",
+  "recorded_at": "2026-08-21T04:30:01+00:00",
+  "notes": "regression task \u2014 not comparable to the AI4I classifiers",
+  "rmse": 17.347425872997842,
+  "mae": 12.500135383605958,
+  "nasa_score": 746.1502360250861,
+  "pr_auc": NaN,
+  "recall": NaN,
+  "precision": NaN
+}

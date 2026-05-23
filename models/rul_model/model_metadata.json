@@ -1,0 +1,58 @@
+{
+  "model_type": "RULLSTM (2-layer LSTM + dense head)",
+  "task": "remaining useful life regression (cycles)",
+  "dataset": "NASA C-MAPSS FD001",
+  "torch_version": "2.8.0",
+  "window": 30,
+  "features": [
+    "sensor_2",
+    "sensor_3",
+    "sensor_4",
+    "sensor_6",
+    "sensor_7",
+    "sensor_8",
+    "sensor_9",
+    "sensor_11",
+    "sensor_12",
+    "sensor_13",
+    "sensor_14",
+    "sensor_15",
+    "sensor_17",
+    "sensor_20",
+    "sensor_21",
+    "op_setting_1",
+    "op_setting_2"
+  ],
+  "dropped_constant_columns": [
+    "op_setting_3",
+    "sensor_1",
+    "sensor_5",
+    "sensor_10",
+    "sensor_16",
+    "sensor_18",
+    "sensor_19"
+  ],
+  "rul_cap": 125,
+  "target": "piecewise-linear RUL, capped at 125 cycles",
+  "split": "by engine unit (80 train / 20 validation), never by row",
+  "early_stopping": {
+    "best_epoch": 36,
+    "val_rmse": 14.322
+  },
+  "test_metrics": {
+    "rmse": 17.347,
+    "mae": 12.5,
+    "nasa_score": 746.15,
+    "n": 100
+  },
+  "ridge_baseline_metrics": {
+    "rmse": 14.855,
+    "mae": 12.081,
+    "nasa_score": 367.239,
+    "n": 100
+  },
+  "honest_note": "The linear window baseline reaches within ~2% of this model on RMSE. The LSTM's advantage is concentrated in MAE and the NASA score, i.e. in the late-life region that drives maintenance scheduling.",
+  "known_limits": "Error grows with true RUL by design (capped target). Predictions at or near the cap should be surfaced as 'no degradation detected', not as a cycle count.",
+  "scaler": "StandardScaler fitted on training engines only \u2014 REQUIRED at inference",
+  "random_seed": 42
+}
