@@ -1,0 +1,18 @@
+{
+  "model": "Isolation Forest",
+  "split": "test",
+  "recorded_at": "2026-08-18T10:34:29+00:00",
+  "notes": "semi-supervised (fitted on normal rows only); threshold = 95th pct of val scores",
+  "threshold": 0.6960002590175982,
+  "accuracy": 0.948,
+  "precision": 0.30851063829787234,
+  "recall": 0.4264705882352941,
+  "f1": 0.35802469135802467,
+  "roc_auc": 0.8663454512239678,
+  "pr_auc": 0.28978539597064124,
+  "tn": 1867,
+  "fp": 65,
+  "fn": 39,
+  "tp": 29,
+  "cost": 20150.0
+}
