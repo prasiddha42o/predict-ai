@@ -1,0 +1,18 @@
+{
+  "model": "Autoencoder",
+  "split": "test",
+  "recorded_at": "2026-08-21T04:16:28+00:00",
+  "notes": "latent 6, hidden 16, seed 42; single-seed result \u2014 val PR-AUC varies \u00b10.05 across seeds; threshold = 95th pct of val error",
+  "threshold": 0.01159886084496975,
+  "accuracy": 0.951,
+  "precision": 0.3333333333333333,
+  "recall": 0.4411764705882353,
+  "f1": 0.37974683544303794,
+  "roc_auc": 0.7084551211789063,
+  "pr_auc": 0.3222061276533879,
+  "tn": 1872,
+  "fp": 60,
+  "fn": 38,
+  "tp": 30,
+  "cost": 19600.0
+}
