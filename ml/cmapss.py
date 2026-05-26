@@ -186,7 +186,16 @@ def nasa_score(y_true, y_pred) -> float:
 
 
 def regression_metrics(y_true, y_pred) -> dict:
-    """RMSE, MAE, the NASA score, and sample count -- the one scoring function every model here goes through."""
+    """RMSE, MAE, NASA score, signed bias and late-prediction rate.
+
+    `bias` is the mean of (predicted - actual): positive means the model runs
+    late on average. `late_fraction` is the share of predictions where
+    predicted > actual -- the dangerous direction, since it means maintenance
+    would be scheduled after the engine would already have failed. This is the
+    one scoring function every model in this notebook goes through, so nothing
+    downstream (notebook 08's comparison, notebook 10's error analysis) can
+    silently disagree on what "late" means.
+    """
     y_true = np.asarray(y_true, dtype=float)
     y_pred = np.asarray(y_pred, dtype=float)
     err = y_pred - y_true
@@ -194,5 +203,7 @@ def regression_metrics(y_true, y_pred) -> dict:
         "rmse": float(np.sqrt(np.mean(err**2))),
         "mae": float(np.mean(np.abs(err))),
         "nasa_score": nasa_score(y_true, y_pred),
+        "bias": float(err.mean()),
+        "late_fraction": float((err > 0).mean()),
         "n": int(len(y_true)),
     }

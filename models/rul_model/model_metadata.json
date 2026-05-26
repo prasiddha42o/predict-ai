@@ -43,12 +43,16 @@
     "rmse": 17.347,
     "mae": 12.5,
     "nasa_score": 746.15,
+    "bias": 2.204,
+    "late_fraction": 0.6,
     "n": 100
   },
   "ridge_baseline_metrics": {
     "rmse": 14.855,
     "mae": 12.081,
     "nasa_score": 367.239,
+    "bias": 2.004,
+    "late_fraction": 0.53,
     "n": 100
   },
   "honest_note": "The linear window baseline reaches within ~2% of this model on RMSE. The LSTM's advantage is concentrated in MAE and the NASA score, i.e. in the late-life region that drives maintenance scheduling.",

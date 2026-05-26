@@ -1,7 +1,7 @@
 {
   "model": "Ridge RUL baseline (C-MAPSS FD001)",
   "split": "test",
-  "recorded_at": "2026-08-21T04:30:01+00:00",
+  "recorded_at": "2026-08-21T04:55:26+00:00",
   "notes": "regression task \u2014 linear model on flattened 30-cycle window",
   "rmse": 14.854580463853567,
   "mae": 12.080644607543945,
