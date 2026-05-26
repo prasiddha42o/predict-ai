@@ -1,0 +1,91 @@
+{
+  "base_value": -3.4548654556274414,
+  "features": [
+    "air_temp_k",
+    "process_temp_k",
+    "rotational_speed_rpm",
+    "torque_nm",
+    "tool_wear_min",
+    "temp_diff_k",
+    "power_w",
+    "wear_torque",
+    "type_ordinal"
+  ],
+  "global_importance": {
+    "tool_wear_min": 0.39295,
+    "rotational_speed_rpm": 0.38959,
+    "temp_diff_k": 0.30976,
+    "power_w": 0.22076,
+    "wear_torque": 0.1612,
+    "torque_nm": 0.12287,
+    "air_temp_k": 0.05542,
+    "type_ordinal": 0.01779,
+    "process_temp_k": 0.01346
+  },
+  "feature_groups": {
+    "power (torque x speed)": [
+      "power_w",
+      "torque_nm",
+      "rotational_speed_rpm"
+    ],
+    "wear (wear x torque)": [
+      "wear_torque",
+      "tool_wear_min"
+    ],
+    "thermal": [
+      "temp_diff_k",
+      "air_temp_k",
+      "process_temp_k"
+    ],
+    "quality": [
+      "type_ordinal"
+    ]
+  },
+  "group_importance": {
+    "power (torque x speed)": 0.73321,
+    "wear (wear x torque)": 0.55415,
+    "thermal": 0.37864,
+    "quality": 0.01779
+  },
+  "presentation_rules": {
+    "units": "SHAP values are log-odds contributions, NOT probability percentages",
+    "panel": "report each feature's share of total absolute attribution",
+    "grouping": "aggregate collinear features into groups before display",
+    "low_signal": "when max |SHAP| is small, display 'no strong signal' rather than forcing a ranked explanation"
+  },
+  "mode_signatures": {
+    "Heat Dissipation Failure": {
+      "air_temp_k": 0.2226,
+      "process_temp_k": 0.0344,
+      "rotational_speed_rpm": 1.9693,
+      "torque_nm": 0.2095,
+      "tool_wear_min": -0.0985,
+      "temp_diff_k": 2.1641,
+      "power_w": -0.0366,
+      "wear_torque": -0.0368,
+      "type_ordinal": -0.0326
+    },
+    "Power Failure": {
+      "air_temp_k": -0.0198,
+      "process_temp_k": 0.0034,
+      "rotational_speed_rpm": 0.5289,
+      "torque_nm": 0.7757,
+      "tool_wear_min": -0.1111,
+      "temp_diff_k": -0.0536,
+      "power_w": 3.2078,
+      "wear_torque": -0.0509,
+      "type_ordinal": -0.0261
+    },
+    "Overstrain Failure": {
+      "air_temp_k": -0.0479,
+      "process_temp_k": -0.012,
+      "rotational_speed_rpm": 0.6136,
+      "torque_nm": 0.2696,
+      "tool_wear_min": 0.8668,
+      "temp_diff_k": -0.2492,
+      "power_w": 0.0794,
+      "wear_torque": 3.1723,
+      "type_ordinal": 0.1394
+    }
+  }
+}
