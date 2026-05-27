@@ -27,6 +27,10 @@ out/
 dist/
 build/
 
+# Backend runtime
+*.db
+*.db-journal
+
 # MLflow
 mlruns/
 
