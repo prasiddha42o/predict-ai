@@ -9,9 +9,13 @@ python-dotenv>=1.0
 websockets>=12.0
 
 # Reused from ../requirements.txt so inference reproduces training exactly.
+# scikit-learn is pinned (not >=) to match the version the pickled
+# IsolationForest/StandardScaler artifacts under models/ were actually
+# trained with -- unpickling across a scikit-learn version jump is a known
+# way to get silently wrong results, not just a warning.
 pandas>=2.2
 numpy>=1.26
-scikit-learn>=1.5
+scikit-learn==1.6.1
 xgboost>=2.1
 torch>=2.3
 shap>=0.45
