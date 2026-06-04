@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.db import Base, engine
 from app import models  # noqa: F401  (registers tables on Base.metadata)
-from app.routers import machines, predictions
+from app.routers import alerts, machines, predictions
 
 settings = get_settings()
 
@@ -28,6 +28,7 @@ app.add_middleware(
 
 app.include_router(machines.router)
 app.include_router(predictions.router)
+app.include_router(alerts.router)
 
 
 @app.on_event("startup")

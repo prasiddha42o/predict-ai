@@ -15,6 +15,7 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.alerts import maybe_create_alerts
 from app.db import get_db
 from app.ml.inference_milling import score_milling_reading
 from app.ml.inference_turbofan import score_turbofan_window
@@ -88,6 +89,8 @@ def score_reading(
         explanation=result.get("explanation"),
     )
     db.add(prediction)
+    db.flush()  # prediction.id available for maybe_create_alerts, not yet committed
+    maybe_create_alerts(db, machine, prediction)
     db.commit()
     db.refresh(prediction)
     return prediction
