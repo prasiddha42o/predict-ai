@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -9,6 +11,7 @@ from app.config import get_settings
 from app.db import Base, engine
 from app import models  # noqa: F401  (registers tables on Base.metadata)
 from app.routers import alerts, machines, maintenance, predictions
+from app.ws import router as ws_router, simulator_loop
 
 settings = get_settings()
 
@@ -30,13 +33,24 @@ app.include_router(machines.router)
 app.include_router(predictions.router)
 app.include_router(alerts.router)
 app.include_router(maintenance.router)
+app.include_router(ws_router)
+
+_simulator_task: asyncio.Task | None = None
 
 
 @app.on_event("startup")
-def create_tables_if_missing() -> None:
+async def on_startup() -> None:
+    global _simulator_task
     # Convenience for local/SQLite dev only -- `alembic upgrade head` is the
     # real migration path (see docker-compose's backend entrypoint).
     Base.metadata.create_all(bind=engine)
+    _simulator_task = asyncio.create_task(simulator_loop())
+
+
+@app.on_event("shutdown")
+async def on_shutdown() -> None:
+    if _simulator_task is not None:
+        _simulator_task.cancel()
 
 
 @app.get("/health")

@@ -1,27 +1,23 @@
-"""Score a reading: store it, run it through the right model(s), store the result.
+"""Score a reading: validate it, then hand off to the shared scoring path.
 
-One endpoint, dispatching on `machine.machine_type` -- milling machines are
-scored from the single reading just submitted; turbofan engines are scored
-from their last `window` stored readings, since the RUL model needs a
-sequence. Either way the caller gets the same `PredictionOut` shape back.
+Dispatches on `machine.machine_type` -- milling machines are scored from the
+single reading just submitted; turbofan engines are scored from their last
+`window` stored readings, since the RUL model needs a sequence. The actual
+store-and-score work is shared with the WebSocket simulator loop via
+`app.scoring.score_and_store`.
 """
 
 from __future__ import annotations
 
-from datetime import datetime
-
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import ValidationError
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.alerts import maybe_create_alerts
 from app.db import get_db
-from app.ml.inference_milling import score_milling_reading
-from app.ml.inference_turbofan import score_turbofan_window
 from app.ml.registry import ModelRegistry, get_registry
-from app.models import HealthStatus, Machine, MachineType, Prediction, SensorReading
+from app.models import Machine, MachineType, Prediction
 from app.schemas import MillingReadingIn, PredictionOut, TurbofanReadingIn
+from app.scoring import score_and_store
 
 router = APIRouter(tags=["predictions"])
 
@@ -63,34 +59,4 @@ def score_reading(
     except ValidationError as exc:
         raise HTTPException(422, exc.errors()) from exc
 
-    reading = SensorReading(machine_id=machine_id, cycle=cycle, payload=payload)
-    db.add(reading)
-    db.flush()  # assigns reading.id without committing yet
-
-    if machine.machine_type == MachineType.MILLING:
-        result = score_milling_reading(payload, registry)
-    else:
-        history = db.scalars(
-            select(SensorReading)
-            .where(SensorReading.machine_id == machine_id)
-            .order_by(SensorReading.cycle)
-        ).all()
-        readings = [r.payload for r in history]
-        result = score_turbofan_window(readings, registry.rul_model)
-
-    prediction = Prediction(
-        machine_id=machine_id,
-        reading_id=reading.id,
-        ts=datetime.utcnow(),
-        failure_probability=result.get("failure_probability"),
-        anomaly_score=result.get("anomaly_score"),
-        rul_cycles=result.get("rul_cycles"),
-        status=HealthStatus(result["status"]),
-        explanation=result.get("explanation"),
-    )
-    db.add(prediction)
-    db.flush()  # prediction.id available for maybe_create_alerts, not yet committed
-    maybe_create_alerts(db, machine, prediction)
-    db.commit()
-    db.refresh(prediction)
-    return prediction
+    return score_and_store(db, machine, payload, cycle, registry)
