@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,10 +16,24 @@ from app.ws import router as ws_router, simulator_loop
 
 settings = get_settings()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Convenience for local/SQLite dev only -- `alembic upgrade head` is the
+    # real migration path (see docker-compose's backend entrypoint).
+    Base.metadata.create_all(bind=engine)
+    task = asyncio.create_task(simulator_loop())
+    try:
+        yield
+    finally:
+        task.cancel()
+
+
 app = FastAPI(
     title="PredictAI",
     description="Predictive maintenance & machine health inference API.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -34,23 +49,6 @@ app.include_router(predictions.router)
 app.include_router(alerts.router)
 app.include_router(maintenance.router)
 app.include_router(ws_router)
-
-_simulator_task: asyncio.Task | None = None
-
-
-@app.on_event("startup")
-async def on_startup() -> None:
-    global _simulator_task
-    # Convenience for local/SQLite dev only -- `alembic upgrade head` is the
-    # real migration path (see docker-compose's backend entrypoint).
-    Base.metadata.create_all(bind=engine)
-    _simulator_task = asyncio.create_task(simulator_loop())
-
-
-@app.on_event("shutdown")
-async def on_shutdown() -> None:
-    if _simulator_task is not None:
-        _simulator_task.cancel()
 
 
 @app.get("/health")
