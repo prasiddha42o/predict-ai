@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f9f9f7;
+  --surface: #fcfcfb;
+  --foreground: #0b0b0b;
+  --ink-secondary: #52514e;
+  --ink-muted: #898781;
+  --gridline: #e1e0d9;
+  --border: rgba(11, 11, 11, 0.1);
+
+  /* Status palette -- fixed, never themed for series identity. */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+
+  /* Categorical slots, in fixed order -- never cycled or reassigned. */
+  --series-1: #2a78d6; /* blue   */
+  --series-2: #eb6834; /* orange */
+  --series-3: #1baf7a; /* aqua   */
+  --series-4: #eda100; /* yellow */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+  --color-gridline: var(--gridline);
+  --color-border: var(--border);
+  --color-status-good: var(--status-good);
+  --color-status-warning: var(--status-warning);
+  --color-status-serious: var(--status-serious);
+  --color-status-critical: var(--status-critical);
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+  --color-series-4: var(--series-4);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0d0d0d;
+    --surface: #1a1a19;
+    --foreground: #ffffff;
+    --ink-secondary: #c3c2b7;
+    --ink-muted: #898781;
+    --gridline: #2c2c2a;
+    --border: rgba(255, 255, 255, 0.1);
+
+    --status-good: #0ca30c;
+    --status-warning: #fab219;
+    --status-serious: #ec835a;
+    --status-critical: #e66767;
+
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
