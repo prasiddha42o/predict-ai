@@ -1,69 +1,130 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "@/lib/api";
+import type { HealthStatus, MachineSummary } from "@/lib/types";
+import { useLiveFeed } from "@/lib/useLiveFeed";
+import { HealthBadge } from "@/components/HealthBadge";
+import { StatTile } from "@/components/StatTile";
+
+export default function DashboardPage() {
+  const [machines, setMachines] = useState<MachineSummary[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { ticksByMachine, connected } = useLiveFeed();
+
+  useEffect(() => {
+    api
+      .listMachines()
+      .then(setMachines)
+      .catch((err) => setError(err instanceof Error ? err.message : String(err)));
+  }, []);
+
+  // Live ticks overlay the REST snapshot -- same merge the detail page uses.
+  const merged = useMemo(() => {
+    if (!machines) return null;
+    return machines.map((m) => {
+      const tick = ticksByMachine[m.id];
+      if (!tick) return m;
+      return {
+        ...m,
+        latest_status: tick.prediction.status,
+        latest_failure_probability: tick.prediction.failure_probability,
+        latest_anomaly_score: tick.prediction.anomaly_score,
+        latest_rul_cycles: tick.prediction.rul_cycles,
+        latest_prediction_ts: tick.prediction.ts,
+      };
+    });
+  }, [machines, ticksByMachine]);
+
+  const counts = useMemo(() => {
+    const base: Record<HealthStatus | "unknown", number> = {
+      normal: 0,
+      warning: 0,
+      critical: 0,
+      unknown: 0,
+    };
+    for (const m of merged ?? []) {
+      base[m.latest_status ?? "unknown"] += 1;
+    }
+    return base;
+  }, [merged]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="mx-auto flex max-w-5xl flex-col gap-6 p-6">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold">PredictAI</h1>
+          <p className="text-sm text-ink-muted">Machine health & failure risk, fleet-wide.</p>
+        </div>
+        <span className="flex items-center gap-1.5 text-xs text-ink-muted">
+          <span
+            className={`h-2 w-2 rounded-full ${connected ? "bg-status-good" : "bg-status-critical"}`}
+            aria-hidden
+          />
+          {connected ? "Live" : "Reconnecting…"}
+        </span>
+      </header>
+
+      {error && (
+        <p className="rounded-lg border border-status-critical/30 bg-surface p-3 text-sm text-status-critical">
+          {error}
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatTile label="Machines" value={merged?.length ?? "—"} />
+        <StatTile label="Healthy" value={counts.normal} tone="good" />
+        <StatTile label="Warning" value={counts.warning} tone="warning" />
+        <StatTile label="Critical" value={counts.critical} tone="critical" />
+      </div>
+
+      <section className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-medium text-ink-secondary">Fleet</h2>
+          <Link href="/maintenance" className="text-sm text-series-1 hover:underline">
+            Maintenance history →
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {merged?.map((m) => (
+            <Link
+              key={m.id}
+              href={`/machines/${m.id}`}
+              className="flex items-center justify-between rounded-lg border border-border bg-surface p-3 hover:bg-background"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+              <div>
+                <div className="text-sm font-medium">{m.name}</div>
+                <div className="text-xs text-ink-muted">
+                  {m.machine_type === "milling"
+                    ? `Milling machine · type ${m.quality_type ?? "—"}`
+                    : "Turbofan engine"}
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {m.machine_type === "milling" && m.latest_failure_probability != null && (
+                  <span className="text-sm tabular-nums text-ink-secondary">
+                    {(m.latest_failure_probability * 100).toFixed(0)}% risk
+                  </span>
+                )}
+                {m.machine_type === "turbofan" && m.latest_rul_cycles != null && (
+                  <span className="text-sm tabular-nums text-ink-secondary">
+                    {m.latest_rul_cycles.toFixed(0)} cycles left
+                  </span>
+                )}
+                <HealthBadge status={m.latest_status ?? "normal"} />
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {merged?.length === 0 && (
+          <p className="text-sm text-ink-muted">
+            No machines yet — run <code>python -m app.seed</code> in the backend.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        )}
+      </section>
+    </main>
   );
 }
