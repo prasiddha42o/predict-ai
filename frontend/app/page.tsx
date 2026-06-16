@@ -3,22 +3,39 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
-import type { HealthStatus, MachineSummary } from "@/lib/types";
+import type { Alert, HealthStatus, MachineSummary } from "@/lib/types";
 import { useLiveFeed } from "@/lib/useLiveFeed";
+import { AlertsPanel } from "@/components/AlertsPanel";
 import { HealthBadge } from "@/components/HealthBadge";
 import { StatTile } from "@/components/StatTile";
 
 export default function DashboardPage() {
   const [machines, setMachines] = useState<MachineSummary[] | null>(null);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
   const [error, setError] = useState<string | null>(null);
   const { ticksByMachine, connected } = useLiveFeed();
+
+  function refreshAlerts() {
+    api.listAlerts(true).then(setAlerts).catch(() => {});
+  }
 
   useEffect(() => {
     api
       .listMachines()
       .then(setMachines)
       .catch((err) => setError(err instanceof Error ? err.message : String(err)));
+    refreshAlerts();
+    // Alerts are created server-side as a side effect of scoring -- poll
+    // rather than push a dedicated WS message for them, since they're
+    // low-frequency compared to the sensor tick rate.
+    const interval = setInterval(refreshAlerts, 10_000);
+    return () => clearInterval(interval);
   }, []);
+
+  async function handleAcknowledge(id: number) {
+    await api.acknowledgeAlert(id);
+    refreshAlerts();
+  }
 
   // Live ticks overlay the REST snapshot -- same merge the detail page uses.
   const merged = useMemo(() => {
@@ -78,6 +95,13 @@ export default function DashboardPage() {
         <StatTile label="Warning" value={counts.warning} tone="warning" />
         <StatTile label="Critical" value={counts.critical} tone="critical" />
       </div>
+
+      <section className="flex flex-col gap-2">
+        <h2 className="text-sm font-medium text-ink-secondary">
+          Active alerts {alerts.length > 0 && `(${alerts.length})`}
+        </h2>
+        <AlertsPanel alerts={alerts} onAcknowledge={handleAcknowledge} />
+      </section>
 
       <section className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
