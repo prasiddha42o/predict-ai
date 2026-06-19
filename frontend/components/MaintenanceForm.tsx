@@ -16,7 +16,11 @@ export function MaintenanceForm({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
-    const form = new FormData(e.currentTarget);
+    // React nullifies the synthetic event after this handler's synchronous
+    // portion returns, so `e.currentTarget` is gone by the time `await`
+    // resolves -- capture the actual DOM node now, use it after.
+    const formEl = e.currentTarget;
+    const form = new FormData(formEl);
     const payload: MaintenanceRecordInput = {
       machine_id: Number(form.get("machine_id")),
       maintenance_date: String(form.get("maintenance_date")),
@@ -29,7 +33,7 @@ export function MaintenanceForm({
     setSubmitting(true);
     try {
       await onSubmit(payload);
-      e.currentTarget.reset();
+      formEl.reset();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save record.");
     } finally {
