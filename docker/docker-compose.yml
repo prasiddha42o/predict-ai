@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: predictai
+      POSTGRES_USER: predictai
+      POSTGRES_PASSWORD: predictai
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U predictai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      # Repo root, not backend/ -- see backend/Dockerfile's own comment.
+      context: ..
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://predictai:predictai@db:5432/predictai
+      FRONTEND_ORIGIN: http://localhost:3000
+      SIMULATOR_INTERVAL_SECONDS: "3"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../frontend
+      args:
+        # NEXT_PUBLIC_* are inlined at build time, so they're build args here,
+        # not runtime environment -- see frontend/Dockerfile.
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+        NEXT_PUBLIC_WS_URL: ws://localhost:8000/ws/live
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
