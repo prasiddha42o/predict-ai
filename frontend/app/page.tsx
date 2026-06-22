@@ -137,7 +137,7 @@ export default function DashboardPage() {
                     {m.latest_rul_cycles.toFixed(0)} cycles left
                   </span>
                 )}
-                <HealthBadge status={m.latest_status ?? "normal"} />
+                <HealthBadge status={m.latest_status} />
               </div>
             </Link>
           ))}

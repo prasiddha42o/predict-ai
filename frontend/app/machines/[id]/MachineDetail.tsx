@@ -69,7 +69,10 @@ export function MachineDetail({ id }: { id: number }) {
   // `machine` comes from GET /machines/{id} (`MachineOut`), which has no
   // status field -- that only exists on the list endpoint's `MachineSummary`.
   // The real status lives on the latest prediction this page already fetched.
-  const status = tick?.prediction.status ?? latest?.status ?? "normal";
+  // Left `null` (not defaulted to "normal") when nothing has been scored yet
+  // -- HealthBadge renders that as a distinct "Unscored" state.
+  const status = tick?.prediction.status ?? latest?.status ?? null;
+  const tone = status === "critical" ? "critical" : status === "warning" ? "warning" : "default";
 
   const chartSpecs = machine?.machine_type === "turbofan" ? TURBOFAN_CHARTS : MILLING_CHARTS;
   const chartData = useMemo(
@@ -129,7 +132,7 @@ export function MachineDetail({ id }: { id: number }) {
                   ? `${(latest.failure_probability * 100).toFixed(0)}%`
                   : "—"
               }
-              tone={status === "critical" ? "critical" : status === "warning" ? "warning" : "default"}
+              tone={tone}
             />
             <StatTile
               label="Anomaly score"
@@ -140,7 +143,7 @@ export function MachineDetail({ id }: { id: number }) {
           <StatTile
             label="Estimated RUL"
             value={latest?.rul_cycles != null ? `${latest.rul_cycles.toFixed(0)} cycles` : "—"}
-            tone={status === "critical" ? "critical" : status === "warning" ? "warning" : "default"}
+            tone={tone}
           />
         )}
       </div>
