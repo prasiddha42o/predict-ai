@@ -45,6 +45,12 @@ export function MachineDetail({ id }: { id: number }) {
   const tick = ticksByMachine[id];
   useEffect(() => {
     if (!tick) return;
+    // This is the sanctioned case the rule itself documents: subscribing to
+    // an external system (the WebSocket, via useLiveFeed) and calling
+    // setState in a callback when *it* changes -- not deriving state from
+    // this component's own props/render, which is what the rule actually
+    // guards against.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setReadings((prev) => [
       ...prev,
       { id: -Date.now(), machine_id: id, ts: tick.prediction.ts, cycle: null, payload: tick.reading },
