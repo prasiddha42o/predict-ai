@@ -2,8 +2,11 @@
 
 Machine failure prediction on industrial sensor data, built ML-first: the models are
 researched, evaluated and selected in notebooks before any application code exists.
+The FastAPI backend and Next.js dashboard were built *around* those trained models
+afterwards, not the other way round.
 
-**Status:** ML research phase — notebooks 01–04 complete.
+**Status:** ML research complete (10/10 notebooks, 4 production models) — backend,
+frontend, Docker and CI all built and running against them.
 
 ---
 
@@ -14,10 +17,12 @@ researched, evaluated and selected in notebooks before any application code exis
 | Always predict "no failure" | — | 0.000 | — | 0 | 34,000 |
 | Logistic Regression (raw sensors) | 0.415 | 0.103 | 0.636 | 4 | 30,540 |
 | Logistic Regression (+ engineered) | 0.458 | 0.926 | 0.109 | 517 | 7,670 |
-| **XGBoost (tuned)** | **0.898** | **0.926** | **0.342** | **121** | **3,710** |
+| **XGBoost (tuned)** | **0.898** | **0.941** | **0.358** | **115** | **3,150** |
 
 Test split, 2,000 rows, 68 failures. Thresholds selected on validation by expected-cost
-minimisation, then frozen. At matched recall, the tuned model cuts false alarms by 77%.
+minimisation, then frozen. At matched recall, the tuned model cuts false alarms by 78%.
+This is the model the backend actually serves — see [Production models](#production-models)
+for the other three (anomaly detection, autoencoder, RUL).
 
 ---
 
@@ -61,9 +66,12 @@ predicted analytically before any model was trained.
 | [`02_sensor_analysis`](notebooks/02_sensor_analysis.ipynb) | Failure physics, rule verification, the performance envelope, mutual information. |
 | [`03_baseline_failure_prediction`](notebooks/03_baseline_failure_prediction.ipynb) | Logistic regression, the accuracy trap, threshold selection, cost sensitivity. |
 | [`04_xgboost_prediction`](notebooks/04_xgboost_prediction.ipynb) | Optuna tuning, learning curve, gain vs permutation importance, per-mode error analysis. |
-
-Planned: `05_anomaly_detection`, `06_autoencoder`, `07_lstm_rul`, `08_model_comparison`,
-`09_shap_analysis`, `10_error_analysis`.
+| [`05_anomaly_detection`](notebooks/05_anomaly_detection.ipynb) | Isolation Forest, semi-supervised on known-normal rows, novel-fault test against unseen OSF failures. |
+| [`06_autoencoder`](notebooks/06_autoencoder.ipynb) | Dense autoencoder vs Isolation Forest; the seed-variance finding that reverses which one "wins". |
+| [`07_cmapss_rul`](notebooks/07_cmapss_rul.ipynb) | NASA C-MAPSS, RUL target capping, engine-level split leakage test, LSTM vs linear-window baseline. |
+| [`08_model_comparison`](notebooks/08_model_comparison.ipynb) | Every model on one table, with bootstrap confidence intervals — not just a bigger-number contest. |
+| [`09_shap_analysis`](notebooks/09_shap_analysis.ipynb) | SHAP attribution for the XGBoost classifier; the per-prediction "why" the backend serves. |
+| [`10_error_analysis`](notebooks/10_error_analysis.ipynb) | Error taxonomy, false-alarm clustering against real failure thresholds, cost decomposition. |
 
 ---
 
@@ -79,6 +87,26 @@ model that looks like it works and means nothing. The sequential half of the pro
 therefore moves to **NASA C-MAPSS**, which has `unit_number`, `time_in_cycles` and
 run-to-failure trajectories. The two datasets answer two different questions in the same
 dashboard: *is this machine failing now* (AI4I) and *how long until it fails* (C-MAPSS).
+
+---
+
+## Production models
+
+Four trained artifacts under `models/`, each serialised with its own scaler and
+`model_metadata.json` so the backend transforms live data exactly like training did:
+
+| Model | Task | Key metric | Notes |
+|---|---|---|---|
+| `failure_classifier/` | Failure probability (AI4I) | PR-AUC 0.898 | The one the dashboard leads with. |
+| `anomaly_detector/` | Anomaly score (AI4I) | PR-AUC 0.290, recall 0.427 | Isolation Forest; strongest at flagging *novel* faults the classifier was never trained on. |
+| `autoencoder/` | Anomaly score + per-feature attribution (AI4I) | PR-AUC 0.322 (single seed; 0.330 mean over 5 — see nb06) | Weaker than the Isolation Forest on novel faults, but the only one that can say *which* signal is wrong. |
+| `rul_model/` | Remaining useful life, cycles (C-MAPSS FD001) | RMSE 17.3 (LSTM) vs 14.9 (linear baseline) | Kept for the late-life error/NASA-score edge, not because the RMSE gap justifies the architecture — see notebook 07 §7. |
+
+`failure_classifier` and `anomaly_detector`/`autoencoder` score **milling machines**
+(AI4I sensors, single snapshot). `rul_model` scores **turbofan engines** (C-MAPSS
+sensors, 30-cycle window) — a different machine type in the backend's data model,
+not a fourth score bolted onto the same reading. See [Scope change](#scope-change-this-dataset-is-not-time-series)
+for why those two are kept separate rather than forced into one feature space.
 
 ---
 
@@ -99,6 +127,17 @@ dashboard: *is this machine failing now* (AI4I) and *how long until it fails* (C
   stochastic ones** (mean probability 0.75 vs 0.07). Tool-wear warnings therefore need a
   different UX treatment from the other alerts — a product decision falling directly out
   of the error analysis.
+- **Importing `torch` before `xgboost` segfaults the backend on macOS** — both bundle
+  their own `libomp.dylib`, and whichever initialises second can crash the process with
+  no Python exception, just `SIGSEGV`. Fixed by import order, not a dependency change;
+  see `backend/app/ml/registry.py`.
+- **The default `pip install torch` pulls a ~2GB CUDA wheel** into a container that never
+  touches a GPU. The backend Dockerfile installs from PyTorch's CPU-only index instead —
+  ~200MB, same code.
+- **An unscored machine defaulting to a green "Normal" badge is a lie**, not a UI nicety.
+  The dashboard's healthy/warning/critical counts already excluded unscored machines
+  correctly; the badge just hadn't caught up. Fixed by giving "never scored yet" its own
+  visible state instead of silently rounding it to healthy.
 
 ---
 
@@ -106,58 +145,94 @@ dashboard: *is this machine failing now* (AI4I) and *how long until it fails* (C
 
 ```
 predictai/
-├── notebooks/          numbered research notebooks, outputs committed
+├── notebooks/           numbered research notebooks, outputs committed
 ├── ml/
-│   ├── paths.py            canonical paths
-│   ├── data.py             schema, feature engineering, frozen split
-│   ├── viz.py              shared plot style
-│   ├── preprocessing/      feature matrix shared by training and inference
-│   ├── training/           (empty — model training lives in notebooks for now)
-│   ├── evaluation/         metrics, cost model, experiment leaderboard
-│   └── inference/          (empty — production inference pipeline, not yet built)
+│   ├── paths.py             canonical paths
+│   ├── data.py              AI4I schema, feature engineering, frozen split
+│   ├── cmapss.py            C-MAPSS loading, RUL targets, engine-level split
+│   ├── viz.py               shared plot style
+│   ├── preprocessing/       feature matrix shared by training and inference
+│   ├── training/            SensorAutoencoder, RULLSTM — reused by backend inference
+│   └── evaluation/          metrics, cost model, experiment leaderboard
 ├── scripts/
-│   └── download_data.py    fetch + verify the dataset
+│   ├── download_data.py     fetch + verify AI4I 2020
+│   └── download_cmapss.py   fetch + verify NASA C-MAPSS
 ├── data/
-│   ├── raw/                ai4i2020.csv
-│   └── processed/          cleaned parquet + frozen split indices
+│   ├── raw/                 ai4i2020.csv, cmapss/ (FD001 train/test/RUL)
+│   └── processed/           cleaned parquet, frozen splits
 ├── models/
-│   └── failure_classifier/ model.json, feature_config.json, model_metadata.json
+│   ├── failure_classifier/  XGBoost + feature_config.json + explainability.json
+│   ├── anomaly_detector/    Isolation Forest
+│   ├── autoencoder/         PyTorch state_dict + scaler
+│   └── rul_model/           PyTorch LSTM + scaler + Ridge baseline
 ├── reports/
-│   ├── figures/            all generated figures
-│   └── metrics/            one JSON per recorded experiment
-├── backend/             FastAPI inference service — scaffolded, not implemented
-├── frontend/            Next.js dashboard — scaffolded, not implemented
-├── tests/               test suite — scaffolded, not implemented
-├── docker/              containerisation — scaffolded, not implemented
-└── docs/                architecture notes, model cards — scaffolded, not implemented
+│   ├── figures/              all generated figures
+│   └── metrics/               one JSON per recorded experiment
+├── backend/              FastAPI inference API — see backend/README.md
+│   ├── app/                  routers, models, scoring, WebSocket simulator loop
+│   ├── app/ml/                model registry + inference (imports ml/ directly)
+│   ├── alembic/               migrations
+│   └── tests/                 pytest: inference pipeline + API contract
+├── frontend/             Next.js dashboard — see frontend/README.md
+│   ├── app/                   fleet dashboard, machine detail, maintenance pages
+│   ├── components/            HealthBadge, StatTile, SensorChart, AlertsPanel, ...
+│   └── lib/                   REST client, WebSocket hook, shared types
+├── docker/
+│   └── docker-compose.yml    postgres + backend + frontend
+└── .github/workflows/ci.yml  pytest + tsc + eslint + next build
 ```
 
-`backend/`, `frontend/`, `tests/`, `docker/`, `docs/` are directory skeletons only —
-each holds a README describing what will land there. They stay empty on purpose until
-notebooks 05–10 select a final model; building the application around a model that
-doesn't exist yet is the mistake this project is structured to avoid.
-
-Notebooks import from `ml/` rather than redefining logic. The split, the feature
-definitions, the cost model and the evaluation function each exist in exactly one place,
-so no two notebooks can silently disagree about what they are measuring.
+Notebooks import from `ml/` rather than redefining logic, and so does the backend —
+`backend/app/ml/inference_milling.py` calls the exact same `ml.preprocessing.tabular.
+to_model_matrix` the notebooks trained against, and `ml/training/{autoencoder,rul_lstm}.py`
+hold the two PyTorch architectures so the backend can reconstruct them from saved weights
+without a second, drift-prone copy of the class definition.
 
 ---
 
-## Reproducing
+## Running it
+
+**Backend + frontend + Postgres, one command:**
+
+```bash
+cd docker && docker compose up --build
+docker compose exec backend python -m app.seed   # 24 demo machines
+```
+
+Dashboard at `localhost:3000`, API at `localhost:8000`.
+
+**Local dev** (SQLite, no Docker — two terminals):
+
+```bash
+# terminal 1
+cd backend && pip install -r requirements.txt
+python -m app.seed && uvicorn app.main:app --reload   # localhost:8000
+
+# terminal 2
+cd frontend && npm install && npm run dev               # localhost:3010
+```
+
+**ML research:**
 
 ```bash
 pip install -r requirements.txt
-python scripts/download_data.py
+python scripts/download_data.py && python scripts/download_cmapss.py
 jupyter lab notebooks/
 ```
 
-Run the notebooks in order — 01 writes the cleaned data and the frozen split that the
-rest depend on. Seed is 42 throughout.
+Run the notebooks in order — 01 writes the cleaned data and frozen split the rest depend
+on; 07 needs C-MAPSS downloaded first. Seed is 42 throughout.
 
 ---
 
 ## Data
 
-AI4I 2020 Predictive Maintenance Dataset — Matzka, S. (2020), UCI Machine Learning
+**AI4I 2020 Predictive Maintenance Dataset** — Matzka, S. (2020), UCI Machine Learning
 Repository. 10,000 rows, 339 failures (3.39%). Synthetic, modelled on a real milling
-machine.
+machine. Powers the failure classifier, anomaly detector and autoencoder.
+
+**NASA C-MAPSS Turbofan Engine Degradation Simulation** — Saxena, A., Goebel, K., Simon,
+D., Eklund, N. (2008), NASA Prognostics Center of Excellence. FD001 subset: 100 train /
+100 test engines, single operating condition, one fault mode. Powers the RUL model; the
+sensor simulator replays its real test trajectories rather than fabricating synthetic
+degradation.
